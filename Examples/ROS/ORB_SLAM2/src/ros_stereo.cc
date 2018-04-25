@@ -35,6 +35,46 @@
 #include"../../../include/System.h"
 
 using namespace std;
+#include <Eigen/Dense>
+#include <nav_msgs/Path.h>
+// publish Tcw to rviz view
+cv::Mat Tcw;
+ros::Publisher vision_path_pub;
+ros::Publisher true_path_pub;
+ros::Subscriber true_pose_sub;
+
+nav_msgs::Path vision_path;
+nav_msgs::Path true_path;
+geometry_msgs::PoseStamped true_pose;
+Eigen::Matrix4d init_pose;
+bool hasInitial = false;
+void true_poseCallback(const geometry_msgs::PoseStampedConstPtr& msg)
+{
+    true_pose = *msg;
+    Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
+    double w = true_pose.pose.orientation.w;
+    double x = true_pose.pose.orientation.x;
+    double y = true_pose.pose.orientation.y;
+    double z = true_pose.pose.orientation.z;
+    pose.block(0, 0, 3, 3) = Eigen::Quaterniond(w, x, y, z).toRotationMatrix();
+    pose(0,3) = true_pose.pose.position.x;
+    pose(1,3) = true_pose.pose.position.y;
+    pose(2,3) = true_pose.pose.position.z;
+    if (!hasInitial) {
+        init_pose = pose;
+        hasInitial = true;
+    }
+    pose =  init_pose.inverse() * pose;
+    Eigen::Matrix3d mat = pose.block(0,0,3,3);
+    Eigen::Quaterniond q(mat);
+    true_pose.pose.orientation.w = q.w();
+    true_pose.pose.orientation.x = q.x();
+    true_pose.pose.orientation.y = q.y();
+    true_pose.pose.orientation.z = q.z();
+    true_pose.pose.position.x = pose(0,3);
+    true_pose.pose.position.y = pose(1,3);
+    true_pose.pose.position.z = pose(2,3);
+}
 
 class ImageGrabber
 {
@@ -50,7 +90,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "RGBD");
+    ros::init(argc, argv, "Stereo");
     ros::start();
 
     if(argc != 4)
@@ -114,6 +154,11 @@ int main(int argc, char **argv)
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
+    // by sj
+    vision_path_pub = nh.advertise<nav_msgs::Path>("/vision_path", 1);
+    true_path_pub = nh.advertise<nav_msgs::Path>("/true_path", 1);
+    true_pose_sub = nh.subscribe("/vrpn_client_node/three/pose", 100, true_poseCallback);
+    //
 
     ros::spin();
 
@@ -132,6 +177,7 @@ int main(int argc, char **argv)
 
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
+
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrLeft;
     try
@@ -160,12 +206,27 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image,imLeft,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image,imRight,M1r,M2r,cv::INTER_LINEAR);
-        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
+        Tcw = mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+        Tcw = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
+    if (Tcw.empty())
+        Tcw = cv::Mat::eye(4, 4, CV_32FC1);
+
+    vision_path.header.frame_id = "/world";
+    geometry_msgs::PoseStamped vision_pose;
+    vision_pose.pose.position.x = Tcw.at<float>(0,3);
+    vision_pose.pose.position.y = Tcw.at<float>(1,3);
+    vision_pose.pose.position.z = Tcw.at<float>(2,3);
+    vision_path.poses.push_back(vision_pose);
+    vision_path_pub.publish(vision_path);
+
+    //
+    true_path.poses.push_back(true_pose);
+    true_path.header.frame_id = "/world";
+    true_path_pub.publish(true_path);
 
 }
 

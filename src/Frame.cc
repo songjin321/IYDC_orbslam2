@@ -80,6 +80,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     threadLeft.join();
     threadRight.join();
 
+    // 为什么只考虑左侧的特征点,而右侧的特征点只用来计算深度
     N = mvKeys.size();
 
     if(mvKeys.empty())

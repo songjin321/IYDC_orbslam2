@@ -25,7 +25,7 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
-
+#include <glog/logging.h>
 namespace ORB_SLAM2
 {
 
@@ -222,7 +222,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
         cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
         exit(-1);
     }
-
+    LOG(INFO) << "enter in main procedure";
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);

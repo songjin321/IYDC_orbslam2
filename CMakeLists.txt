@@ -111,3 +111,5 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+# Build ROS_Example
+add_subdirectory(Examples/ROS/ORB_SLAM2)

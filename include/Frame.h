@@ -168,6 +168,7 @@ public:
     long unsigned int mnId;
 
     // Reference Keyframe.
+    // 这个是怎么赋值的
     KeyFrame* mpReferenceKF;
 
     // Scale pyramid info.

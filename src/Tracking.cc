@@ -37,7 +37,7 @@
 
 #include<mutex>
 
-
+#include <glog/logging.h>
 using namespace std;
 
 namespace ORB_SLAM2
@@ -237,6 +237,8 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
+    LOG(INFO) << "enter in Tracking thread";
+
     mImGray = im;
 
     if(mImGray.channels()==3)
@@ -266,6 +268,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
+    LOG(INFO) << "enter in Track function mState = " << mState ;
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -319,6 +322,8 @@ void Tracking::Track()
             {
                 bOK = Relocalization();
             }
+            // print useful information and analysis why the tracking failed
+            // CHECK(bOK) << "tracking failed!";
         }
         else
         {
@@ -397,6 +402,7 @@ void Tracking::Track()
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
+
             if(bOK)
                 bOK = TrackLocalMap();
         }
@@ -440,6 +446,7 @@ void Tracking::Track()
                 if(pMP)
                     if(pMP->Observations()<1)
                     {
+                        // 如果是outlier,不应当设定为true吗？
                         mCurrentFrame.mvbOutlier[i] = false;
                         mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                     }
@@ -502,7 +509,6 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-
 }
 
 
@@ -532,7 +538,7 @@ void Tracking::StereoInitialization()
                 pNewMP->ComputeDistinctiveDescriptors();
                 pNewMP->UpdateNormalAndDepth();
                 mpMap->AddMapPoint(pNewMP);
-
+                LOG(INFO) << "depth of MapPoint = " << x3D.at<float>(2,0);
                 mCurrentFrame.mvpMapPoints[i]=pNewMP;
             }
         }
@@ -765,7 +771,7 @@ bool Tracking::TrackReferenceKeyFrame()
     vector<MapPoint*> vpMapPointMatches;
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
-
+    LOG(INFO) << "TrackReferenceKeyFrame matches number = " << nmatches;
     if(nmatches<15)
         return false;
 
@@ -794,7 +800,7 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
         }
     }
-
+    LOG(INFO) << "TrackReferenceKeyFrame matches number = " << nmatchesMap;
     return nmatchesMap>=10;
 }
 
@@ -883,7 +889,6 @@ bool Tracking::TrackWithMotionModel()
     else
         th=7;
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
-
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
@@ -923,7 +928,7 @@ bool Tracking::TrackWithMotionModel()
         mbVO = nmatchesMap<10;
         return nmatches>20;
     }
-
+    LOG(INFO) << "TrackMotionModel matches number = " << nmatchesMap;
     return nmatchesMap>=10;
 }
 
@@ -966,7 +971,8 @@ bool Tracking::TrackLocalMap()
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
-
+    LOG(INFO) << "TrackLocalMap Matches Inliers = " << mnMatchesInliers;
+    // change 30 to 1
     if(mnMatchesInliers<30)
         return false;
     else
@@ -1000,7 +1006,7 @@ bool Tracking::NeedNewKeyFrame()
 
     // Check how many "close" points are being tracked and how many could be potentially created.
     int nNonTrackedClose = 0;
-    int nTrackedClose= 0;
+    int nTrackedClose = 0;
     if(mSensor!=System::MONOCULAR)
     {
         for(int i =0; i<mCurrentFrame.N; i++)
@@ -1028,6 +1034,7 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
     const bool c1a = mCurrentFrame.mnId>=mnLastKeyFrameId+mMaxFrames;
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
+    // 1b和１a是重复的把，可以删除c1b
     const bool c1b = (mCurrentFrame.mnId>=mnLastKeyFrameId+mMinFrames && bLocalMappingIdle);
     //Condition 1c: tracking is weak
     const bool c1c =  mSensor!=System::MONOCULAR && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
@@ -1036,6 +1043,7 @@ bool Tracking::NeedNewKeyFrame()
 
     if((c1a||c1b||c1c)&&c2)
     {
+        LOG(INFO) << "KeyFrame Test Passed";
         // If the mapping accepts keyframes, insert keyframe.
         // Otherwise send a signal to interrupt BA
         if(bLocalMappingIdle)
