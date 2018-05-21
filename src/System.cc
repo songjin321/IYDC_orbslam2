@@ -292,6 +292,11 @@ bool System::MapChanged()
         return false;
 }
 
+void System::SaveMap(const string& filename)
+{
+    mpMap->Save(filename);
+}
+
 void System::Reset()
 {
     unique_lock<mutex> lock(mMutexReset);

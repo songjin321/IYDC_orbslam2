@@ -37,6 +37,8 @@
 using namespace std;
 #include <Eigen/Dense>
 #include <nav_msgs/Path.h>
+#include <glog/logging.h>
+
 // publish Tcw to rviz view
 cv::Mat Tcw;
 ros::Publisher vision_path_pub;
@@ -90,6 +92,7 @@ public:
 
 int main(int argc, char **argv)
 {
+    google::InitGoogleLogging(argv[0]);
     ros::init(argc, argv, "Stereo");
     ros::start();
 
@@ -163,13 +166,16 @@ int main(int argc, char **argv)
     ros::spin();
 
     // Stop all threads
+    //LOG(INFO) << "Stop SLAM...";
     SLAM.Shutdown();
-
+    //LOG(INFO) << "Saving Map...";
+    SLAM.SaveMap("MapPointandKeyFrame.map");
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
     SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
     SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
-
+    //LOG(INFO) << "ROS shutdown...";
+    cerr << "Shutdown orb_ros." << endl;
     ros::shutdown();
 
     return 0;
