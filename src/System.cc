@@ -62,11 +62,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        cerr << "Failed to open settings file at: " << strSettingsFile << endl;
        exit(-1);
     }
-
+    //Load ORB Vocabulary
+    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
     mpVocabulary = new ORBVocabulary();
-
-    SystemSetting mySystemSetting(mpVocabulary);
-    mySystemSetting.LoadSystemSetting(strSettingsFile);
 
     // Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
@@ -74,13 +72,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMap = new Map();
     if ((strMapFile != "") && (running_mode_ == LocalizationOnly))
     {
+        SystemSetting mySystemSetting(mpVocabulary);
+        mySystemSetting.LoadSystemSetting(strSettingsFile);
         mpMap->Load(strMapFile, &mySystemSetting);
         for (auto kf : mpMap->GetAllKeyFrames())
             mpKeyFrameDatabase->add(kf);
     }
 
-    //Load ORB Vocabulary
-    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
    
     bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
@@ -116,13 +114,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
-    }
-
-    if(running_mode_==LocalizationOnly)
-    {
-        unique_lock<mutex> lock(mMutexMode);
-        mbActivateLocalizationMode=1;
-        mbDeactivateLocalizationMode=0;
     }
 
     //Set pointers between threads
