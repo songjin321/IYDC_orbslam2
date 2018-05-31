@@ -83,7 +83,25 @@ rosbuild_add_executable(Stereo
 src/ros_stereo.cc
 )
 
+# Node for stereo camera
+rosbuild_add_executable(Stereo_mapping
+src/ros_stereo_mapping.cc
+)
+
+# Node for stereo camera
+rosbuild_add_executable(Stereo_localization
+src/ros_stereo_localization.cc
+)
+
 target_link_libraries(Stereo
+${LIBS}
+/usr/lib/x86_64-linux-gnu/libboost_system.so
+)
+target_link_libraries(Stereo_mapping
+${LIBS}
+/usr/lib/x86_64-linux-gnu/libboost_system.so
+)
+target_link_libraries(Stereo_localization
 ${LIBS}
 /usr/lib/x86_64-linux-gnu/libboost_system.so
 )

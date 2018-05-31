@@ -41,7 +41,7 @@ using namespace std;
 
 // publish Tcw to rviz view
 cv::Mat Tcw;
-ros::Publisher vision_path_pub;
+ros::Publisher vision_pose_pub;
 ros::Publisher true_path_pub;
 ros::Subscriber true_pose_sub;
 
@@ -96,16 +96,16 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "Stereo");
     ros::start();
 
-    if(argc != 4)
+    if(argc != 5)
     {
-        cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
+        cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify path_to_map" << endl;
         ros::shutdown();
         return 1;
     }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
-
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,false,ORB_SLAM2::System::LocalizationOnly,argv[4]);
+    
     ImageGrabber igb(&SLAM);
 
     stringstream ss(argv[3]);
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     // by sj
-    vision_path_pub = nh.advertise<nav_msgs::Path>("/vision_path", 1);
+    vision_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/vision_Pose", 1);
     true_path_pub = nh.advertise<nav_msgs::Path>("/true_path", 1);
     true_pose_sub = nh.subscribe("/vrpn_client_node/three/pose", 100, true_poseCallback);
     //
@@ -168,12 +168,12 @@ int main(int argc, char **argv)
     // Stop all threads
     //LOG(INFO) << "Stop SLAM...";
     SLAM.Shutdown();
-    //LOG(INFO) << "Saving Map...";
-    SLAM.SaveMap("MapPointandKeyFrame.map");
+    //LOG(INFO) << "NO Saving Map...";
+    //SLAM.SaveMap("MapPointandKeyFrame.map");
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
+    //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
+    //SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
+    //SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
     //LOG(INFO) << "ROS shutdown...";
     cerr << "Shutdown orb_ros." << endl;
     ros::shutdown();
@@ -221,18 +221,18 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if (Tcw.empty())
         Tcw = cv::Mat::eye(4, 4, CV_32FC1);
 
-    vision_path.header.frame_id = "/world";
-    geometry_msgs::PoseStamped vision_pose;
-    vision_pose.pose.position.x = Tcw.at<float>(0,3);
-    vision_pose.pose.position.y = Tcw.at<float>(1,3);
-    vision_pose.pose.position.z = Tcw.at<float>(2,3);
-    vision_path.poses.push_back(vision_pose);
-    vision_path_pub.publish(vision_path);
+     vision_path.header.frame_id = "/world";
+     geometry_msgs::PoseStamped vision_pose;
+     vision_pose.pose.position.x = Tcw.at<float>(0,3);
+     vision_pose.pose.position.y = Tcw.at<float>(1,3);
+     vision_pose.pose.position.z = Tcw.at<float>(2,3);
+     //vision_path.poses.push_back(vision_pose);
+     vision_pose_pub.publish(vision_pose);
 
-    //
-    true_path.poses.push_back(true_pose);
-    true_path.header.frame_id = "/world";
-    true_path_pub.publish(true_path);
+     //
+     true_path.poses.push_back(true_pose);
+     true_path.header.frame_id = "/world";
+     true_path_pub.publish(true_path);
 
 }
 

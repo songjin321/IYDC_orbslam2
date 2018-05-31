@@ -42,12 +42,40 @@ using namespace std;
 
 namespace ORB_SLAM2
 {
-
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+Tracking::Tracking(System* pSys,
+                   ORBVocabulary* pVoc,
+                   FrameDrawer* pFrameDrawer,
+                   MapDrawer* pMapDrawer,
+                   Map* pMap,
+                   KeyFrameDatabase* pKFDB,
+                   const string& strSettingPath,
+                   const int sensor,
+                   const int mRunning_Mode)
+    : mState(NO_IMAGES_YET),
+      mSensor(sensor),
+      mbOnlyTracking(false),
+      mbVO(false),
+      mpORBVocabulary(pVoc),
+      mpKeyFrameDB(pKFDB),
+      mpInitializer(static_cast<Initializer*>(NULL)),
+      mpSystem(pSys),
+      mpViewer(NULL),
+      mpFrameDrawer(pFrameDrawer),
+      mpMapDrawer(pMapDrawer),
+      mpMap(pMap),
+      mnLastRelocFrameId(0)
 {
+    if (mpMap->KeyFramesInMap() == 0)
+        mState = NO_IMAGES_YET;
+    else
+    {
+        mState = LOST;
+        if (mRunning_Mode == (int)ORB_SLAM2::System::LocalizationOnly)
+            mbOnlyTracking = true;
+        std::vector<KeyFrame*> akf = mpMap->GetAllKeyFrames();
+        mpReferenceKF = akf[0];
+    }
+
     // Load camera parameters from settings file
 
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -134,6 +162,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        //mThDepth = Camera::bf*(float)fSettings["ThDepth"]/Camera::K.at<float>(0,0);
         cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
     }
 

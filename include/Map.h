@@ -23,6 +23,8 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "SystemSetting.h"
+
 #include <set>
 
 #include <mutex>
@@ -31,7 +33,7 @@
 
 namespace ORB_SLAM2
 {
-
+class SystemSetting;
 class MapPoint;
 class KeyFrame;
 
@@ -66,10 +68,13 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
     void Save(const string& filename);
+    void Load( const string &filename, SystemSetting* mySystemSetting );        
 
    protected:
     void SaveMapPoint(ofstream& f, MapPoint* mp);
     void SaveKeyFrame(ofstream& f, KeyFrame* kf);
+    MapPoint* LoadMapPoint( ifstream &f );
+    KeyFrame* LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting );
     std::map<MapPoint*, unsigned long int> mmpnMapPointsIdx;
     void GetMapPointsIdx(void);
     std::set<MapPoint*> mspMapPoints;

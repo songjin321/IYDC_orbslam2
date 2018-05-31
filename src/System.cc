@@ -26,12 +26,18 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 #include <glog/logging.h>
+#include <SystemSetting.h>
 namespace ORB_SLAM2
 {
-
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false)
+               const bool bUseViewer,
+               const eRunningMode running_mode_,
+               const string& strMapFile)
+ : mSensor(sensor),
+      mpViewer(static_cast<Viewer*>(NULL)),
+      mbReset(false),
+      mbActivateLocalizationMode(false),
+      mbDeactivateLocalizationMode(false)
 {
     // Output welcome message
     cout << endl <<
@@ -57,11 +63,26 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
+    mpVocabulary = new ORBVocabulary();
+
+    SystemSetting mySystemSetting(mpVocabulary);
+    mySystemSetting.LoadSystemSetting(strSettingsFile);
+
+    // Create KeyFrame Database
+    mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
+    // Create the Map
+    mpMap = new Map();
+    if ((strMapFile != "") && (running_mode_ == LocalizationOnly))
+    {
+        mpMap->Load(strMapFile, &mySystemSetting);
+        for (auto kf : mpMap->GetAllKeyFrames())
+            mpKeyFrameDatabase->add(kf);
+    }
 
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
-    mpVocabulary = new ORBVocabulary();
+   
     bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
     if(!bVocLoad)
     {
@@ -71,12 +92,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
     cout << "Vocabulary loaded!" << endl << endl;
 
-    //Create KeyFrame Database
-    mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
-
-    //Create the Map
-    mpMap = new Map();
-
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
@@ -84,7 +99,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
+                             mpMap, mpKeyFrameDatabase, strSettingsFile,
+                             mSensor, running_mode_);
 
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
@@ -100,6 +116,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
+    }
+
+    if(running_mode_==LocalizationOnly)
+    {
+        unique_lock<mutex> lock(mMutexMode);
+        mbActivateLocalizationMode=1;
+        mbDeactivateLocalizationMode=0;
     }
 
     //Set pointers between threads
@@ -296,7 +319,10 @@ void System::SaveMap(const string& filename)
 {
     mpMap->Save(filename);
 }
-
+// void System::LoadMap(const string& filename)
+// {
+//     mpMap->Save(filename);
+// }
 void System::Reset()
 {
     unique_lock<mutex> lock(mMutexReset);

@@ -41,14 +41,15 @@ class MapPoint
 public:
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
-
+    MapPoint( const cv::Mat& Pos, Map* pMap );
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
 
     cv::Mat GetNormal();
     KeyFrame* GetReferenceKeyFrame();
+    KeyFrame* SetReferenceKeyFrame(KeyFrame* RFKF);
 
-    std::map<KeyFrame*,size_t> GetObservations();
+    std::map<KeyFrame*, size_t> GetObservations();
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);

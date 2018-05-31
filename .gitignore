@@ -8,6 +8,8 @@ Examples/ROS/ORB_SLAM2/Mono
 Examples/ROS/ORB_SLAM2/MonoAR
 Examples/ROS/ORB_SLAM2/RGBD
 Examples/ROS/ORB_SLAM2/Stereo
+Examples/ROS/ORB_SLAM2/Stereo_mapping
+Examples/ROS/ORB_SLAM2/Stereo_localization
 Examples/ROS/ORB_SLAM2/build/
 Examples/Stereo/stereo_euroc
 Examples/Stereo/stereo_kitti
@@ -21,4 +23,5 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
+.vscode/
 
