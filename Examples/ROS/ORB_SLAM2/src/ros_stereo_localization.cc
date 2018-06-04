@@ -41,12 +41,14 @@ using namespace std;
 
 // publish Tcw to rviz view
 cv::Mat Tcw;
+ros::Publisher vision_path_pub;
 ros::Publisher vision_pose_pub;
 ros::Publisher true_path_pub;
 ros::Subscriber true_pose_sub;
 
 nav_msgs::Path vision_path;
 nav_msgs::Path true_path;
+geometry_msgs::PoseStamped vision_pose;
 geometry_msgs::PoseStamped true_pose;
 Eigen::Matrix4d init_pose;
 bool hasInitial = false;
@@ -158,7 +160,8 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     // by sj
-    vision_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/vision_Pose", 1);
+    vision_path_pub = nh.advertise<nav_msgs::Path>("/vision_Pose", 1);
+    vision_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/vision_pose", 1);
     true_path_pub = nh.advertise<nav_msgs::Path>("/true_path", 1);
     true_pose_sub = nh.subscribe("/vrpn_client_node/three/pose", 100, true_poseCallback);
     //
@@ -221,14 +224,21 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if (Tcw.empty())
         Tcw = cv::Mat::eye(4, 4, CV_32FC1);
 
-     vision_path.header.frame_id = "/world";
-     geometry_msgs::PoseStamped vision_pose;
-     vision_pose.pose.position.x = Tcw.at<float>(0,3);
-     vision_pose.pose.position.y = Tcw.at<float>(1,3);
-     vision_pose.pose.position.z = Tcw.at<float>(2,3);
-     //vision_path.poses.push_back(vision_pose);
-     vision_pose_pub.publish(vision_pose);
+    cv::Mat Rwc(3,3,CV_32F);
+    cv::Mat twc(3,1,CV_32F);
+    Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+    twc = -Rwc*Tcw.rowRange(0,3).col(3);
 
+    vision_pose.header.frame_id = "/world";
+    //geometry_msgs::PoseStamped vision_pose;
+    vision_pose.pose.position.x = twc.at<float>(0,0);
+    vision_pose.pose.position.y = twc.at<float>(0,1);
+    vision_pose.pose.position.z = twc.at<float>(0,2);
+    vision_pose_pub.publish(vision_pose);
+
+    vision_path.header.frame_id = "/world";
+    vision_path.poses.push_back(vision_pose);
+    vision_path_pub.publish(vision_path);
      //
      true_path.poses.push_back(true_pose);
      true_path.header.frame_id = "/world";
