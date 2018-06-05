@@ -98,16 +98,19 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "Stereo");
     ros::start();
 
-    if(argc != 4)
+    if(argc != 5)
     {
-        cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
+        cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify is_gui" << endl;
         ros::shutdown();
         return 1;
     }    
 
+    bool bisgui;
+    stringstream isgui(argv[4]);
+	isgui >> boolalpha >> bisgui;
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
-
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,bisgui);
+    
     ImageGrabber igb(&SLAM);
 
     stringstream ss(argv[3]);
@@ -186,7 +189,6 @@ int main(int argc, char **argv)
 
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
-
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrLeft;
     try
@@ -221,24 +223,34 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
         Tcw = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-    if (Tcw.empty())
-        Tcw = cv::Mat::eye(4, 4, CV_32FC1);
+    if (!Tcw.empty())
+    {
+        cv::Mat Rwc(3,3,CV_32F);
+        cv::Mat twc(3,1,CV_32F);
+        Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+        twc = -Rwc*Tcw.rowRange(0,3).col(3);
 
+        Eigen::Matrix3f  M;
+        M << Rwc.at<float>(0,0), Rwc.at<float>(0,1), Rwc.at<float>(0,2),
+            Rwc.at<float>(1,0), Rwc.at<float>(1,1), Rwc.at<float>(1,2),
+            Rwc.at<float>(2,0), Rwc.at<float>(2,1), Rwc.at<float>(2,2);
+        Eigen::Quaternionf q(M);
 
-    cv::Mat Rwc(3,3,CV_32F);
-    cv::Mat twc(3,1,CV_32F);
-    Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
-    twc = -Rwc*Tcw.rowRange(0,3).col(3);
-
-    vision_pose.header.frame_id = "/world";
-    //geometry_msgs::PoseStamped vision_pose;
-    vision_pose.pose.position.x = twc.at<float>(0,0);
-    vision_pose.pose.position.y = twc.at<float>(0,1);
-    vision_pose.pose.position.z = twc.at<float>(0,2);
+        vision_pose.header.frame_id = "/world";
+        //geometry_msgs::PoseStamped vision_pose;
+        vision_pose.pose.position.x = twc.at<float>(0,0);
+        vision_pose.pose.position.y = twc.at<float>(0,1);
+        vision_pose.pose.position.z = twc.at<float>(0,2);
+        vision_pose.pose.orientation.w =q.w();
+        vision_pose.pose.orientation.x =q.x();
+        vision_pose.pose.orientation.y =q.y();
+        vision_pose.pose.orientation.z =q.z();
+        vision_path.poses.push_back(vision_pose);
+    }
+    
     vision_pose_pub.publish(vision_pose);
 
     vision_path.header.frame_id = "/world";
-    vision_path.poses.push_back(vision_pose);
     vision_path_pub.publish(vision_path);
     //
     true_path.poses.push_back(true_pose);

@@ -221,30 +221,39 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
         Tcw = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-    if (Tcw.empty())
-        Tcw = cv::Mat::eye(4, 4, CV_32FC1);
+    if (!Tcw.empty())
+    {
+        cv::Mat Rwc(3,3,CV_32F);
+        cv::Mat twc(3,1,CV_32F);
+        Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+        twc = -Rwc*Tcw.rowRange(0,3).col(3);
 
-    cv::Mat Rwc(3,3,CV_32F);
-    cv::Mat twc(3,1,CV_32F);
-    Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
-    twc = -Rwc*Tcw.rowRange(0,3).col(3);
+        Eigen::Matrix3f  M;
+        M << Rwc.at<float>(0,0), Rwc.at<float>(0,1), Rwc.at<float>(0,2),
+            Rwc.at<float>(1,0), Rwc.at<float>(1,1), Rwc.at<float>(1,2),
+            Rwc.at<float>(2,0), Rwc.at<float>(2,1), Rwc.at<float>(2,2);
+        Eigen::Quaternionf q(M);
 
-    vision_pose.header.frame_id = "/world";
-    //geometry_msgs::PoseStamped vision_pose;
-    vision_pose.pose.position.x = twc.at<float>(0,0);
-    vision_pose.pose.position.y = twc.at<float>(0,1);
-    vision_pose.pose.position.z = twc.at<float>(0,2);
+        vision_pose.header.frame_id = "/world";
+        //geometry_msgs::PoseStamped vision_pose;
+        vision_pose.pose.position.x = twc.at<float>(0,0);
+        vision_pose.pose.position.y = twc.at<float>(0,1);
+        vision_pose.pose.position.z = twc.at<float>(0,2);
+        vision_pose.pose.orientation.w =q.w();
+        vision_pose.pose.orientation.x =q.x();
+        vision_pose.pose.orientation.y =q.y();
+        vision_pose.pose.orientation.z =q.z();
+        vision_path.poses.push_back(vision_pose);
+    }
+    
     vision_pose_pub.publish(vision_pose);
 
     vision_path.header.frame_id = "/world";
-    vision_path.poses.push_back(vision_pose);
     vision_path_pub.publish(vision_path);
-
     //
     true_path.poses.push_back(true_pose);
     true_path.header.frame_id = "/world";
     true_path_pub.publish(true_path);
-
 }
 
 
