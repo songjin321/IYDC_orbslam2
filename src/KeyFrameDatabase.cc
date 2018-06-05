@@ -24,7 +24,7 @@
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 
 #include<mutex>
-
+#include "glog/logging.h"
 using namespace std;
 
 namespace ORB_SLAM2
@@ -270,6 +270,11 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
         for(vector<KeyFrame*>::iterator vit=vpNeighs.begin(), vend=vpNeighs.end(); vit!=vend; vit++)
         {
             KeyFrame* pKF2 = *vit;
+            if(*vit==0) 
+            {
+                LOG(WARNING)<<"vpNeighs no"<<vend-vit<<" is 0";
+                continue;
+            }
             if(pKF2->mnRelocQuery!=F->mnId)
                 continue;
 
