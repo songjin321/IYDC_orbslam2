@@ -116,3 +116,13 @@ ${LIBS}
 /usr/lib/x86_64-linux-gnu/libboost_system.so
 )
 
+rosbuild_add_executable(RGBD_localization
+src/ros_rgbd_localization.cc
+)
+
+target_link_libraries(RGBD_localization
+${LIBS}
+/usr/lib/x86_64-linux-gnu/libboost_system.so
+)
+
+

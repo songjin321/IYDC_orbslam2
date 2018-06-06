@@ -162,7 +162,6 @@ Tracking::Tracking(System* pSys,
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
-        //mThDepth = Camera::bf*(float)fSettings["ThDepth"]/Camera::K.at<float>(0,0);
         cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
     }
 
@@ -266,8 +265,6 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
-    LOG(INFO) << "enter in Tracking thread";
-
     mImGray = im;
 
     if(mImGray.channels()==3)
@@ -297,7 +294,6 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
-    LOG(INFO) << "enter in Track function mState = " << mState ;
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -431,7 +427,6 @@ void Tracking::Track()
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
-
             if(bOK)
                 bOK = TrackLocalMap();
         }

@@ -81,6 +81,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMap = new Map();
     if ((strMapFile != "") && (running_mode_ == LocalizationOnly))
     {
+        LOG(INFO)<<"Using existing map!";
         SystemSetting mySystemSetting(mpVocabulary);
         mySystemSetting.LoadSystemSetting(strSettingsFile);
         mpMap->Load(strMapFile, &mySystemSetting);

@@ -94,12 +94,9 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "RGBD");
     ros::start();
 
-    if(argc != 4)
+    if(argc != 5)
     {     
-        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui" << endl;
-    // if(argc != 6)
-    // {     
-    //     cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui path_to_map" << endl;
+        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui path_to_map" << endl;
         ros::shutdown();
         return 1;
     }    
@@ -109,8 +106,8 @@ int main(int argc, char **argv)
 	isgui >> boolalpha >> bisgui;
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,bisgui);
-    //ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,bisgui,ORB_SLAM2::System::LocalizationOnly,argv[5]);
+    //ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,bisgui);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,bisgui,ORB_SLAM2::System::LocalizationOnly,argv[4]);
     ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nh;
