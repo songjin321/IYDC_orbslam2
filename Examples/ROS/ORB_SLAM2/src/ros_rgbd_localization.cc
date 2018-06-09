@@ -91,12 +91,13 @@ public:
 
 int main(int argc, char **argv)
 {
+    google::InitGoogleLogging(argv[0]);
     ros::init(argc, argv, "RGBD");
     ros::start();
 
     if(argc != 5)
     {     
-        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui path_to_map" << endl;
+        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings is_gui path_to_map" << endl;
         ros::shutdown();
         return 1;
     }    
@@ -107,13 +108,13 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     //ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,bisgui);
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,bisgui,ORB_SLAM2::System::LocalizationOnly,argv[4]);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,bisgui,ORB_SLAM2::System::LocalizationOnly,argv[4]);
     ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nh;
 
-    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_rect_color", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "/camera/depth_registered/hw_registered/image_rect", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
@@ -126,13 +127,8 @@ int main(int argc, char **argv)
     //
 
     ros::spin();
-    LOG(INFO) << "Saving Map...";
     // Stop all threads
     SLAM.Shutdown();
-    SLAM.SaveMap("MapPointandKeyFrame.map");
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
     ros::shutdown();
 
     return 0;

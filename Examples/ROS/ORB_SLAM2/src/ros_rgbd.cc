@@ -91,12 +91,13 @@ public:
 
 int main(int argc, char **argv)
 {
+    google::InitGoogleLogging(argv[0]);
     ros::init(argc, argv, "RGBD");
     ros::start();
 
     if(argc != 4)
     {     
-        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui" << endl;
+        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings is_gui" << endl;
     // if(argc != 6)
     // {     
     //     cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings do_rectify is_gui path_to_map" << endl;
@@ -115,8 +116,8 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nh;
 
-    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_rect_color", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "/camera/depth_registered/hw_registered/image_rect", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
