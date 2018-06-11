@@ -809,11 +809,11 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                 FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
                      vKeysCell,iniThFAST,true);
 
-                if(vKeysCell.empty())
-                {
-                    FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
-                         vKeysCell,minThFAST,true);
-                }
+                // if(vKeysCell.empty())
+                // {
+                //     FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
+                //          vKeysCell,minThFAST,true);
+                // }
 
                 if(!vKeysCell.empty())
                 {
