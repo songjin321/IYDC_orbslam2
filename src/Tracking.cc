@@ -470,8 +470,7 @@ void Tracking::Track()
                 if(pMP)
                     if(pMP->Observations()<1)
                     {
-                        // 如果是outlier,不应当设定为true吗？
-                        mCurrentFrame.mvbOutlier[i] = false;
+                        mCurrentFrame.mvbOutlier[i] = true ;
                         mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                     }
             }
