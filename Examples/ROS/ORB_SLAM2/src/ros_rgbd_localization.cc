@@ -36,6 +36,7 @@
 #include <Eigen/Dense>
 #include <nav_msgs/Path.h>
 #include <glog/logging.h>
+//#include <gperftools/profiler.h>
 using namespace std;
 
 // publish Tcw to rviz view
@@ -92,6 +93,7 @@ public:
 int main(int argc, char **argv)
 {
     google::InitGoogleLogging(argv[0]);
+//   ProfilerStart("/tmp/move_base_profile");
     ros::init(argc, argv, "RGBD");
     ros::start();
 
@@ -130,7 +132,7 @@ int main(int argc, char **argv)
     // Stop all threads
     SLAM.Shutdown();
     ros::shutdown();
-
+//ProfilerStop();
     return 0;
 }
 
