@@ -1,4 +1,16 @@
 # ORB-SLAM2
+
+## IYDC修改
+
+- 添加了文本地图保存于读取，建图模式（ros_rgbd_mapping）会保存地图，纯定位模式(ros_rgbd_locolization)会读取地图
+- 添加glog
+- 添加gperftool
+- 用过小觅/奥比中光/primesense摄像头，RGBD效果最稳
+- 尝试修改FAST特征点与匹配参数
+- 修改了一处clone()以加快速度
+
+# 原README：
+
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
